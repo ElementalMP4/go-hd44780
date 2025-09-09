@@ -74,13 +74,13 @@ func NewLcd(i2c *i2c.I2C, lcdType LcdType) (*Lcd, error) {
 	time.Sleep(50 * time.Millisecond) // wait >40ms after power-up
 
 	for i := 0; i < 3; i++ {
-		if err := this.writeByte(0x03, 0); err != nil {
+		if err := this.writeNibble(0x03); err != nil {
 			return nil, err
 		}
 		time.Sleep(5 * time.Millisecond) // >4.1ms required
 	}
 
-	if err := this.writeByte(0x02, 0); err != nil { // 4-bit mode
+	if err := this.writeNibble(0x02); err != nil { // 4-bit mode
 		return nil, err
 	}
 	time.Sleep(1 * time.Millisecond)
@@ -145,6 +145,12 @@ func (this *Lcd) writeByte(data byte, controlPins byte) error {
 		return err
 	}
 	return nil
+}
+
+func (this *Lcd) writeNibble(nibble byte) error {
+	// Only upper 4 bits are used
+	data := (nibble << 4) & 0xF0
+	return this.writeDataWithStrobe(data)
 }
 
 func (this *Lcd) getLineRange(options ShowOptions) (startLine, endLine int) {
