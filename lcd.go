@@ -71,27 +71,39 @@ type Lcd struct {
 
 func NewLcd(i2c *i2c.I2C, lcdType LcdType) (*Lcd, error) {
 	this := &Lcd{i2c: i2c, backlight: false, lcdType: lcdType}
-	initByteSeq := []byte{
-		0x03, 0x03, 0x03, // base initialization
-		0x02, // setting up 4-bit transfer mode
-		CMD_Function_Set | OPT_2_Lines | OPT_5x8_Dots | OPT_4Bit_Mode,
-		CMD_Display_Control | OPT_Enable_Display,
-		CMD_Entry_Mode | OPT_Increment,
-	}
-	for _, b := range initByteSeq {
-		err := this.writeByte(b, 0)
-		if err != nil {
+	time.Sleep(50 * time.Millisecond) // wait >40ms after power-up
+
+	for i := 0; i < 3; i++ {
+		if err := this.writeByte(0x03, 0); err != nil {
 			return nil, err
 		}
+		time.Sleep(5 * time.Millisecond) // >4.1ms required
 	}
-	err := this.Clear()
-	if err != nil {
+
+	if err := this.writeByte(0x02, 0); err != nil { // 4-bit mode
 		return nil, err
 	}
-	err = this.Home()
-	if err != nil {
+	time.Sleep(1 * time.Millisecond)
+
+	if err := this.writeByte(CMD_Function_Set|OPT_2_Lines|OPT_5x8_Dots|OPT_4Bit_Mode, 0); err != nil {
 		return nil, err
 	}
+
+	if err := this.writeByte(CMD_Display_Control|OPT_Enable_Display, 0); err != nil {
+		return nil, err
+	}
+
+	if err := this.writeByte(CMD_Entry_Mode|OPT_Increment, 0); err != nil {
+		return nil, err
+	}
+
+	if err := this.Clear(); err != nil {
+		return nil, err
+	}
+	if err := this.Home(); err != nil {
+		return nil, err
+	}
+
 	return this, nil
 }
 
